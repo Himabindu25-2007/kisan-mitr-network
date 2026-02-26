@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Upload, Camera, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,7 @@ const mockDiseases: Record<string, { name: string; confidence: number; severity:
 };
 
 const CropDisease = () => {
+  const navigate = useNavigate();
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<typeof mockDiseases.default | null>(null);
   const [loading, setLoading] = useState(false);
@@ -108,7 +110,17 @@ const CropDisease = () => {
               <a href={result.buyLink} target="_blank" rel="noopener noreferrer">
                 <Button className="bg-accent text-accent-foreground">Buy on Flipkart</Button>
               </a>
-              <Button variant="outline" className="border-primary text-primary">
+              <Button
+                variant="outline"
+                className="border-primary text-primary"
+                onClick={() => navigate("/dashboard/report-problems", {
+                  state: {
+                    type: "🧪 Fertilizer Shortage",
+                    description: `Disease Detected: ${result.name} (Confidence: ${result.confidence}%, Severity: ${result.severity}). ${result.desc}\nRecommended: ${result.pesticide} - ${result.dosage}`,
+                    photo: image,
+                  }
+                })}
+              >
                 📧 Send Report to Welfare Office
               </Button>
             </div>
