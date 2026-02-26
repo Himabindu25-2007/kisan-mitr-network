@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { Upload, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +17,29 @@ const problemTypes = [
 
 const ReportProblems = () => {
   const [form, setForm] = useState<Record<string, string>>({});
+  const [photo, setPhoto] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state) {
+      const s = location.state as Record<string, string>;
+      setForm((prev) => ({
+        ...prev,
+        ...(s.type && { type: s.type }),
+        ...(s.description && { description: s.description }),
+      }));
+      if (s.photo) setPhoto(s.photo);
+    }
+  }, [location.state]);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = () => {
     toast({
@@ -22,6 +47,7 @@ const ReportProblems = () => {
       description: "Your report has been sent to the government dashboard. Track ID: " + Date.now().toString(36).toUpperCase(),
     });
     setForm({});
+    setPhoto(null);
   };
 
   return (
@@ -32,13 +58,39 @@ const ReportProblems = () => {
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <div>
           <label className="text-sm font-medium mb-1 block">Problem Type</label>
-          <Select onValueChange={(v) => setForm((p) => ({ ...p, type: v }))}>
+          <Select value={form.type || ""} onValueChange={(v) => setForm((p) => ({ ...p, type: v }))}>
             <SelectTrigger><SelectValue placeholder="Select problem..." /></SelectTrigger>
             <SelectContent>
               {problemTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+
+        {/* Photo Upload */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">📸 Attach Photo</label>
+          <div
+            onClick={() => fileRef.current?.click()}
+            className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center cursor-pointer hover:border-primary/60 transition-colors"
+          >
+            {photo ? (
+              <div className="relative">
+                <img src={photo} alt="Attached" className="max-h-48 mx-auto rounded-lg" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPhoto(null); }}
+                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 text-xs font-bold"
+                >✕</button>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-8 w-8 text-primary/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Take photo or upload from gallery</p>
+              </>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+          </div>
+        </div>
+
         {[
           { key: "name", label: "Your Name" },
           { key: "village", label: "Village" },
