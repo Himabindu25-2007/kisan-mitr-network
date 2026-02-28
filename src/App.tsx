@@ -18,6 +18,7 @@ import Marketing from "./pages/Marketing";
 import ReportProblems from "./pages/ReportProblems";
 import Helplines from "./pages/Helplines";
 import AdminDashboard from "./pages/AdminDashboard";
+import ChatAssistant from "./pages/ChatAssistant";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="india-map" element={<IndiaMap />} />
             <Route path="report-problems" element={<ReportProblems />} />
             <Route path="helplines" element={<Helplines />} />
+            <Route path="chat-assistant" element={<ChatAssistant />} />
           </Route>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />

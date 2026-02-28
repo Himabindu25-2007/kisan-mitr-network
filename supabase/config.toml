@@ -1,1 +1,4 @@
 project_id = "dorewibvlhfcnwdgzzqw"
+
+[functions.farm-assistant]
+verify_jwt = false

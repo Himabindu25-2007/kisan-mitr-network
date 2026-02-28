@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Sprout, Wheat, ShoppingCart, Landmark, ShieldAlert, Store, Bug,
-  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X
+  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, MessageCircle
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ const menuItems = [
   { title: "India Crop Map", path: "/dashboard/india-map", icon: Map },
   { title: "Report Problems", path: "/dashboard/report-problems", icon: FileWarning },
   { title: "Helplines", path: "/dashboard/helplines", icon: Phone },
+  { title: "🤖 Kisan Mitra AI", path: "/dashboard/chat-assistant", icon: MessageCircle },
 ];
 
 const DashboardLayout = () => {
