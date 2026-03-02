@@ -19,6 +19,9 @@ import ReportProblems from "./pages/ReportProblems";
 import Helplines from "./pages/Helplines";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChatAssistant from "./pages/ChatAssistant";
+import WildlifeTracking from "./pages/WildlifeTracking";
+import WildlifeRegistration from "./pages/WildlifeRegistration";
+import WildlifeHeatmap from "./pages/WildlifeHeatmap";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,9 @@ const App = () => (
             <Route path="farmers-needs" element={<FarmersNeeds />} />
             <Route path="loan-facility" element={<LoanFacility />} />
             <Route path="wildlife-protection" element={<WildlifeProtection />} />
+            <Route path="wildlife-tracking" element={<WildlifeTracking />} />
+            <Route path="wildlife-register" element={<WildlifeRegistration />} />
+            <Route path="wildlife-heatmap" element={<WildlifeHeatmap />} />
             <Route path="marketing" element={<Marketing />} />
             <Route path="crop-disease" element={<CropDisease />} />
             <Route path="market-analytics" element={<MarketAnalytics />} />
