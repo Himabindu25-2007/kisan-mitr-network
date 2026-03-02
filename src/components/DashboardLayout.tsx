@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Sprout, Wheat, ShoppingCart, Landmark, ShieldAlert, Store, Bug,
-  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, MessageCircle
+  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, MessageCircle,
+  PawPrint, Flame
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,8 @@ const menuItems = [
   { title: "Farmers Needs", path: "/dashboard/farmers-needs", icon: ShoppingCart },
   { title: "Loan Facility", path: "/dashboard/loan-facility", icon: Landmark },
   { title: "Wildlife Protection", path: "/dashboard/wildlife-protection", icon: ShieldAlert },
+  { title: "🐾 Wildlife Tracking", path: "/dashboard/wildlife-tracking", icon: PawPrint },
+  { title: "🔥 Heatmap & AI", path: "/dashboard/wildlife-heatmap", icon: Flame },
   { title: "Sell Crop", path: "/dashboard/marketing", icon: Store },
   { title: "Crop Disease", path: "/dashboard/crop-disease", icon: Bug },
   { title: "Market Analytics", path: "/dashboard/market-analytics", icon: BarChart3 },

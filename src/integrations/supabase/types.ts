@@ -14,7 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      animal_location_history: {
+        Row: {
+          animal_id: string
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string
+        }
+        Insert: {
+          animal_id: string
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string
+        }
+        Update: {
+          animal_id?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "animal_location_history_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "wild_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wild_animals: {
+        Row: {
+          animal_name: string
+          animal_type: string
+          created_at: string
+          current_latitude: number
+          current_longitude: number
+          forest_zone: string
+          id: string
+          initial_latitude: number
+          initial_longitude: number
+          officer_contact: string
+          officer_name: string
+          status: string
+          tracking_id: string
+        }
+        Insert: {
+          animal_name: string
+          animal_type: string
+          created_at?: string
+          current_latitude: number
+          current_longitude: number
+          forest_zone: string
+          id?: string
+          initial_latitude: number
+          initial_longitude: number
+          officer_contact: string
+          officer_name: string
+          status?: string
+          tracking_id: string
+        }
+        Update: {
+          animal_name?: string
+          animal_type?: string
+          created_at?: string
+          current_latitude?: number
+          current_longitude?: number
+          forest_zone?: string
+          id?: string
+          initial_latitude?: number
+          initial_longitude?: number
+          officer_contact?: string
+          officer_name?: string
+          status?: string
+          tracking_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
