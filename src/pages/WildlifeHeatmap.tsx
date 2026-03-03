@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Moon, Volume2, AlertTriangle, Shield, Clock, Navigation, Zap, MapPin } from "lucide-react";
+import { Flame, Moon, Volume2, AlertTriangle, Shield, Clock, Navigation, Zap, MapPin, Search } from "lucide-react";
 
 type LocationPoint = {
   latitude: number;
@@ -133,6 +134,7 @@ const WildlifeHeatmap = () => {
   const [locations, setLocations] = useState<LocationPoint[]>([]);
   const [animals, setAnimals] = useState<WildAnimal[]>([]);
   const [predictions, setPredictions] = useState<ReturnType<typeof predictNightDanger>[]>([]);
+  const [trackSearch, setTrackSearch] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -217,6 +219,66 @@ const WildlifeHeatmap = () => {
           <h1 className="text-2xl font-display font-bold">Wildlife Heatmap & AI Prediction</h1>
           <p className="text-muted-foreground text-sm">Movement density + Night danger detection + Telugu voice alerts</p>
         </div>
+      </div>
+
+      {/* Animal Search & Track */}
+      <div className="mb-6">
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Track by name or tracking ID (e.g. TIG-00001, Raja)..."
+            value={trackSearch}
+            onChange={(e) => setTrackSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {trackSearch && (() => {
+          const matched = animals.filter(a =>
+            a.tracking_id.toLowerCase().includes(trackSearch.toLowerCase()) ||
+            a.animal_name.toLowerCase().includes(trackSearch.toLowerCase())
+          );
+          if (matched.length === 0) return (
+            <p className="text-sm text-muted-foreground text-center py-2">No animals found for "{trackSearch}"</p>
+          );
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {matched.map(animal => {
+                const dist = haversineDistance(animal.initial_latitude, animal.initial_longitude, animal.current_latitude, animal.current_longitude);
+                const isAlert = animal.status === "Alert";
+                const alerts = animalTeluguAlerts[animal.animal_type] || animalTeluguAlerts.default;
+                return (
+                  <Card key={animal.id} className={`${isAlert ? "border-destructive/50 bg-destructive/5" : "border-border"}`}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm flex items-center gap-2">
+                          {animalEmojis[animal.animal_type] || "🐾"} {animal.tracking_id}
+                        </span>
+                        <Badge variant={isAlert ? "destructive" : "secondary"}>
+                          {isAlert ? "🔴 Alert" : "🟢 Safe"}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>🏷️ Name: <span className="font-medium text-foreground">{animal.animal_name}</span></div>
+                        <div>🐾 Type: {animal.animal_type}</div>
+                        <div>🌲 Zone: {animal.forest_zone}</div>
+                        <div>📏 Distance: {dist.toFixed(1)}m from safe zone</div>
+                        <div>📍 GPS: {animal.current_latitude.toFixed(4)}, {animal.current_longitude.toFixed(4)}</div>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => handleVoiceAlert(animal, "warning")}>
+                          <Volume2 className="h-3 w-3 mr-1" /> Warning
+                        </Button>
+                        <Button size="sm" variant="destructive" className="flex-1 text-xs" onClick={() => handleVoiceAlert(animal, "danger")}>
+                          <Volume2 className="h-3 w-3 mr-1" /> Danger
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Night Danger Predictions - AI Section */}
