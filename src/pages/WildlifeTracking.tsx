@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   PawPrint, Plus, Search, MapPin, AlertTriangle, Shield, Volume2,
-  Map as MapIcon, BarChart3
+  Map as MapIcon, BarChart3, Route
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type WildAnimal = {
   id: string;
@@ -26,14 +27,25 @@ type WildAnimal = {
   created_at: string;
 };
 
+type LocationHistory = {
+  latitude: number;
+  longitude: number;
+  recorded_at: string;
+  animal_id: string;
+};
+
 const animalEmojis: Record<string, string> = {
   Tiger: "🐅", Lion: "🦁", Elephant: "🐘", Leopard: "🐆", Deer: "🦌",
   Bear: "🐻", Wolf: "🐺", Rhino: "🦏", Cheetah: "🐆",
 };
 
+const trailColors: Record<string, string> = {
+  Tiger: "#f97316", Lion: "#eab308", Elephant: "#6366f1", Leopard: "#ec4899",
+  Deer: "#22c55e", Bear: "#8b5cf6", Wolf: "#64748b", Rhino: "#14b8a6", Cheetah: "#f43f5e",
+};
+
 const animalTypes = ["All", "Tiger", "Lion", "Elephant", "Leopard", "Deer", "Bear", "Wolf", "Rhino", "Cheetah"];
 
-// Haversine formula
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -46,28 +58,52 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Telugu voice alerts
-const teluguAlerts: Record<string, { warning: string; danger: string }> = {
+const teluguAlerts: Record<string, { warning: string; danger: string; critical: string }> = {
   Elephant: {
     warning: "ఏనుగు సరిహద్దు దగ్గర ఉంది. జాగ్రత్త!",
-    danger: "ఏనుగులు నూరు మీటర్లు దాటసాయి. ప్రమాదం!",
+    danger: "ఏనుగులు నూరు మీటర్లు దాటసాయి. అధికారికి హెచ్చరిక!",
+    critical: "ఏనుగు 200 మీటర్లు దాటింది! వైల్డ్‌లైఫ్ హెడ్ ఆఫీసర్‌కు అత్యవసర హెచ్చరిక!",
   },
   Tiger: {
     warning: "పులి సరిహద్దు దగ్గర ఉంది. జాగ్రత్త!",
-    danger: "పులి నూరు మీటర్లు దాటింది. అత్యవసర హెచ్చరిక!",
+    danger: "పులి నూరు మీటర్లు దాటింది. అధికారికి హెచ్చరిక!",
+    critical: "పులి 200 మీటర్లు దాటింది! వైల్డ్‌లైఫ్ హెడ్ ఆఫీసర్‌కు అత్యవసర హెచ్చరిక!",
   },
   default: {
     warning: "అడవి జంతువు సరిహద్దు దగ్గర ఉంది.",
-    danger: "అడవి జంతువు నూరు మీటర్లు దాటింది. జాగ్రత్త!",
+    danger: "అడవి జంతువు నూరు మీటర్లు దాటింది. అధికారికి హెచ్చరిక!",
+    critical: "అడవి జంతువు 200 మీటర్లు దాటింది! హెడ్ ఆఫీసర్‌కు అత్యవసర హెచ్చరిక!",
   },
 };
 
-function speakTelugu(text: string) {
+function speakTelugu(text: string, rate = 0.9) {
   if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "te-IN";
-  utter.rate = 0.9;
+  utter.rate = rate;
   window.speechSynthesis.speak(utter);
+}
+
+function playAlertTone(frequency: number, duration: number) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = frequency;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+    osc.start();
+    osc.stop(ctx.currentTime + duration / 1000);
+  } catch {}
+}
+
+function getAlertLevel(dist: number): "safe" | "alert" | "critical" {
+  if (dist > 200) return "critical";
+  if (dist > 100) return "alert";
+  return "safe";
 }
 
 const WildlifeTracking = () => {
@@ -76,10 +112,13 @@ const WildlifeTracking = () => {
   const [filterType, setFilterType] = useState("All");
   const [selectedAnimal, setSelectedAnimal] = useState<WildAnimal | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [showTrails, setShowTrails] = useState(true);
+  const [locationHistory, setLocationHistory] = useState<Record<string, LocationHistory[]>>({});
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const circlesRef = useRef<any[]>([]);
+  const polylinesRef = useRef<any[]>([]);
   const simulationRef = useRef<any>(null);
 
   const fetchAnimals = useCallback(async () => {
@@ -87,17 +126,36 @@ const WildlifeTracking = () => {
     if (data) setAnimals(data as WildAnimal[]);
   }, []);
 
+  const fetchLocationHistory = useCallback(async () => {
+    const { data } = await supabase
+      .from("animal_location_history")
+      .select("latitude, longitude, recorded_at, animal_id")
+      .order("recorded_at", { ascending: true })
+      .limit(1000);
+    if (data) {
+      const grouped: Record<string, LocationHistory[]> = {};
+      data.forEach((loc) => {
+        if (!grouped[loc.animal_id]) grouped[loc.animal_id] = [];
+        grouped[loc.animal_id].push(loc);
+      });
+      setLocationHistory(grouped);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAnimals();
-    // Realtime subscription
+    fetchLocationHistory();
     const channel = supabase
       .channel("wild_animals_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "wild_animals" }, () => fetchAnimals())
+      .on("postgres_changes", { event: "*", schema: "public", table: "wild_animals" }, () => {
+        fetchAnimals();
+        fetchLocationHistory();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchAnimals]);
+  }, [fetchAnimals, fetchLocationHistory]);
 
-  // Simulate GPS movement
+  // Simulate GPS movement with tiered alerts
   useEffect(() => {
     if (animals.length === 0) return;
     simulationRef.current = setInterval(async () => {
@@ -107,21 +165,29 @@ const WildlifeTracking = () => {
         const newLat = animal.current_latitude + dLat;
         const newLng = animal.current_longitude + dLng;
         const dist = haversineDistance(animal.initial_latitude, animal.initial_longitude, newLat, newLng);
-        const newStatus = dist > 100 ? "Alert" : "Safe";
+        const alertLevel = getAlertLevel(dist);
+        const prevLevel = getAlertLevel(haversineDistance(animal.initial_latitude, animal.initial_longitude, animal.current_latitude, animal.current_longitude));
+        const newStatus = alertLevel === "safe" ? "Safe" : "Alert";
 
-        if (newStatus === "Alert" && animal.status !== "Alert") {
-          const alerts = teluguAlerts[animal.animal_type] || teluguAlerts.default;
-          toast.error(`⚠️ Alert! ${animal.tracking_id} (${animal.animal_type}) moved beyond 100m!`, { duration: 8000 });
-          speakTelugu(alerts.danger);
-          // Play warning sound
-          try {
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            osc.frequency.value = 800;
-            osc.connect(ctx.destination);
-            osc.start();
-            setTimeout(() => osc.stop(), 500);
-          } catch {}
+        const alerts = teluguAlerts[animal.animal_type] || teluguAlerts.default;
+
+        // Tiered alert notifications
+        if (alertLevel === "critical" && prevLevel !== "critical") {
+          toast.error(
+            `🚨 CRITICAL! ${animal.tracking_id} (${animal.animal_type}) crossed 200m! Wildlife Head Officer notified!`,
+            { duration: 12000 }
+          );
+          playAlertTone(1100, 800);
+          setTimeout(() => speakTelugu(alerts.critical, 1.0), 1000);
+          if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
+        } else if (alertLevel === "alert" && prevLevel === "safe") {
+          toast.warning(
+            `⚠️ Alert! ${animal.tracking_id} (${animal.animal_type}) crossed 100m! Officer notified.`,
+            { duration: 8000 }
+          );
+          playAlertTone(700, 500);
+          setTimeout(() => speakTelugu(alerts.danger, 0.9), 700);
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         }
 
         await supabase
@@ -165,21 +231,25 @@ const WildlifeTracking = () => {
     return () => { cancelled = true; };
   }, [showMap]);
 
-  // Update markers when animals change
+  // Update markers when animals or history change
   useEffect(() => {
     if (!leafletMap.current || !showMap) return;
     import("leaflet").then((L) => updateMarkers(L));
-  }, [animals, showMap]);
+  }, [animals, showMap, locationHistory, showTrails]);
 
   const updateMarkers = (L: any) => {
     if (!leafletMap.current) return;
     markersRef.current.forEach((m) => m.remove());
     circlesRef.current.forEach((c) => c.remove());
+    polylinesRef.current.forEach((p) => p.remove());
     markersRef.current = [];
     circlesRef.current = [];
+    polylinesRef.current = [];
 
     animals.forEach((animal) => {
-      const color = animal.status === "Alert" ? "#ef4444" : "#22c55e";
+      const dist = haversineDistance(animal.initial_latitude, animal.initial_longitude, animal.current_latitude, animal.current_longitude);
+      const alertLevel = getAlertLevel(dist);
+      const color = alertLevel === "critical" ? "#dc2626" : alertLevel === "alert" ? "#f97316" : "#22c55e";
       const emoji = animalEmojis[animal.animal_type] || "🐾";
 
       const icon = L.divIcon({
@@ -195,19 +265,39 @@ const WildlifeTracking = () => {
           <b>${animal.tracking_id}</b><br/>
           ${emoji} ${animal.animal_name} (${animal.animal_type})<br/>
           Zone: ${animal.forest_zone}<br/>
-          Status: <span style="color:${color};font-weight:bold">${animal.status}</span>
+          Distance: ${dist.toFixed(1)}m<br/>
+          Status: <span style="color:${color};font-weight:bold">${alertLevel === "critical" ? "🔴 CRITICAL (>200m)" : alertLevel === "alert" ? "🟠 Alert (>100m)" : "🟢 Safe"}</span>
         `);
       markersRef.current.push(marker);
 
-      const circle = L.circle([animal.initial_latitude, animal.initial_longitude], {
-        radius: 100,
-        color: color,
-        fillColor: color,
-        fillOpacity: 0.1,
-        weight: 2,
-        dashArray: "5,5",
-      }).addTo(leafletMap.current);
-      circlesRef.current.push(circle);
+      // Safe zone circles - 100m and 200m
+      const circle100 = L.circle([animal.initial_latitude, animal.initial_longitude], {
+        radius: 100, color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.08, weight: 2, dashArray: "5,5",
+      }).addTo(leafletMap.current).bindTooltip("100m - Officer Alert Zone");
+      circlesRef.current.push(circle100);
+
+      const circle200 = L.circle([animal.initial_latitude, animal.initial_longitude], {
+        radius: 200, color: "#dc2626", fillColor: "#dc2626", fillOpacity: 0.05, weight: 2, dashArray: "10,5",
+      }).addTo(leafletMap.current).bindTooltip("200m - Head Officer Alert Zone");
+      circlesRef.current.push(circle200);
+
+      // Movement history trail
+      if (showTrails && locationHistory[animal.id] && locationHistory[animal.id].length > 1) {
+        const trailColor = trailColors[animal.animal_type] || "#6366f1";
+        const points = locationHistory[animal.id].map((l) => [l.latitude, l.longitude] as [number, number]);
+        const polyline = L.polyline(points, {
+          color: trailColor, weight: 3, opacity: 0.7, dashArray: "6,4",
+        }).addTo(leafletMap.current).bindTooltip(`${animal.tracking_id} trail (${points.length} points)`);
+        polylinesRef.current.push(polyline);
+
+        // Start point marker
+        const startIcon = L.divIcon({
+          html: `<div style="background:${trailColor};color:white;border-radius:50%;width:12px;height:12px;border:2px solid white;"></div>`,
+          iconSize: [12, 12], iconAnchor: [6, 6], className: "",
+        });
+        const startMarker = L.marker(points[0], { icon: startIcon }).addTo(leafletMap.current).bindTooltip("Trail start");
+        markersRef.current.push(startMarker);
+      }
     });
 
     if (animals.length > 0) {
@@ -223,8 +313,18 @@ const WildlifeTracking = () => {
     return matchSearch && matchType;
   });
 
-  const totalSafe = animals.filter((a) => a.status === "Safe").length;
-  const totalAlert = animals.filter((a) => a.status === "Alert").length;
+  const totalSafe = animals.filter((a) => {
+    const d = haversineDistance(a.initial_latitude, a.initial_longitude, a.current_latitude, a.current_longitude);
+    return d <= 100;
+  }).length;
+  const totalAlert = animals.filter((a) => {
+    const d = haversineDistance(a.initial_latitude, a.initial_longitude, a.current_latitude, a.current_longitude);
+    return d > 100 && d <= 200;
+  }).length;
+  const totalCritical = animals.filter((a) => {
+    const d = haversineDistance(a.initial_latitude, a.initial_longitude, a.current_latitude, a.current_longitude);
+    return d > 200;
+  }).length;
 
   return (
     <div className="animate-fade-in">
@@ -236,10 +336,15 @@ const WildlifeTracking = () => {
           </h1>
           <p className="text-muted-foreground text-sm">Monitor. Protect. Conserve.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant={showMap ? "default" : "outline"} onClick={() => setShowMap(!showMap)}>
             <MapIcon className="h-4 w-4 mr-1" /> {showMap ? "Hide Map" : "Live Map"}
           </Button>
+          {showMap && (
+            <Button variant={showTrails ? "default" : "outline"} onClick={() => setShowTrails(!showTrails)}>
+              <Route className="h-4 w-4 mr-1" /> {showTrails ? "Hide Trails" : "Show Trails"}
+            </Button>
+          )}
           <Link to="/dashboard/wildlife-register">
             <Button><Plus className="h-4 w-4 mr-1" /> Register Animal</Button>
           </Link>
@@ -247,7 +352,7 @@ const WildlifeTracking = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <PawPrint className="h-6 w-6 mx-auto mb-1 text-primary" />
           <div className="text-2xl font-bold">{animals.length}</div>
@@ -256,19 +361,29 @@ const WildlifeTracking = () => {
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <Shield className="h-6 w-6 mx-auto mb-1 text-green-600" />
           <div className="text-2xl font-bold text-green-600">{totalSafe}</div>
-          <div className="text-xs text-muted-foreground">🟢 Safe Zone</div>
+          <div className="text-xs text-muted-foreground">🟢 Safe (&lt;100m)</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <AlertTriangle className="h-6 w-6 mx-auto mb-1 text-orange-500" />
+          <div className="text-2xl font-bold text-orange-500">{totalAlert}</div>
+          <div className="text-xs text-muted-foreground">🟠 Officer Alert (100-200m)</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <AlertTriangle className="h-6 w-6 mx-auto mb-1 text-destructive" />
-          <div className="text-2xl font-bold text-destructive">{totalAlert}</div>
-          <div className="text-xs text-muted-foreground">🔴 Out of Range</div>
+          <div className="text-2xl font-bold text-destructive">{totalCritical}</div>
+          <div className="text-xs text-muted-foreground">🔴 Head Officer (200m+)</div>
         </div>
       </div>
 
       {/* Map */}
       {showMap && (
         <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
-          <div ref={mapRef} style={{ height: 400, width: "100%" }} />
+          <div className="flex items-center gap-4 px-4 py-2 border-b border-border text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> 100m Safe Zone</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> 200m Critical Zone</span>
+            <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-indigo-500" /> Movement Trail</span>
+          </div>
+          <div ref={mapRef} style={{ height: 450, width: "100%" }} />
         </div>
       )}
 
@@ -311,13 +426,15 @@ const WildlifeTracking = () => {
               animal.initial_latitude, animal.initial_longitude,
               animal.current_latitude, animal.current_longitude
             );
-            const isAlert = animal.status === "Alert";
+            const alertLevel = getAlertLevel(dist);
+            const historyCount = locationHistory[animal.id]?.length || 0;
             return (
               <div
                 key={animal.id}
                 onClick={() => setSelectedAnimal(selectedAnimal?.id === animal.id ? null : animal)}
                 className={`bg-card border rounded-xl p-4 cursor-pointer card-hover ${
-                  isAlert ? "border-destructive/50 bg-destructive/5" : "border-border"
+                  alertLevel === "critical" ? "border-destructive bg-destructive/5" :
+                  alertLevel === "alert" ? "border-orange-400/50 bg-orange-50/30" : "border-border"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -328,16 +445,24 @@ const WildlifeTracking = () => {
                       <div className="text-xs text-muted-foreground">{animal.animal_name}</div>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    isAlert ? "bg-destructive/20 text-destructive" : "bg-green-100 text-green-700"
-                  }`}>
-                    {isAlert ? "🔴 Alert" : "🟢 Safe"}
-                  </span>
+                  <Badge variant={alertLevel === "critical" ? "destructive" : alertLevel === "alert" ? "outline" : "secondary"}
+                    className={alertLevel === "alert" ? "border-orange-400 text-orange-600" : ""}>
+                    {alertLevel === "critical" ? "🔴 CRITICAL" : alertLevel === "alert" ? "🟠 Alert" : "🟢 Safe"}
+                  </Badge>
                 </div>
                 <div className="text-xs space-y-1 text-muted-foreground">
                   <div>🌲 Zone: {animal.forest_zone}</div>
                   <div>👮 Officer: {animal.officer_name}</div>
-                  <div>📏 Distance: {dist.toFixed(1)}m from safe zone</div>
+                  <div>📏 Distance: <span className={`font-semibold ${alertLevel === "critical" ? "text-destructive" : alertLevel === "alert" ? "text-orange-500" : "text-green-600"}`}>{dist.toFixed(1)}m</span></div>
+                  {alertLevel === "alert" && (
+                    <div className="text-orange-600 font-medium">⚠️ Officer notified (100m+ breach)</div>
+                  )}
+                  {alertLevel === "critical" && (
+                    <div className="text-destructive font-medium">🚨 Head Officer notified (200m+ breach)</div>
+                  )}
+                  {historyCount > 0 && (
+                    <div>📍 Trail: {historyCount} GPS points recorded</div>
+                  )}
                 </div>
 
                 {selectedAnimal?.id === animal.id && (
@@ -345,18 +470,33 @@ const WildlifeTracking = () => {
                     <div>📍 Initial: {animal.initial_latitude.toFixed(4)}, {animal.initial_longitude.toFixed(4)}</div>
                     <div>📡 Current: {animal.current_latitude.toFixed(4)}, {animal.current_longitude.toFixed(4)}</div>
                     <div>📞 Contact: {animal.officer_contact || "N/A"}</div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const alerts = teluguAlerts[animal.animal_type] || teluguAlerts.default;
-                        speakTelugu(isAlert ? alerts.danger : alerts.warning);
-                      }}
-                    >
-                      <Volume2 className="h-3 w-3 mr-1" /> Telugu Voice Alert
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const alerts = teluguAlerts[animal.animal_type] || teluguAlerts.default;
+                          speakTelugu(alerts.warning);
+                        }}
+                      >
+                        <Volume2 className="h-3 w-3 mr-1" /> Warning
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const alerts = teluguAlerts[animal.animal_type] || teluguAlerts.default;
+                          playAlertTone(900, 600);
+                          setTimeout(() => speakTelugu(dist > 200 ? alerts.critical : alerts.danger, 1.0), 800);
+                        }}
+                      >
+                        <Volume2 className="h-3 w-3 mr-1" /> {dist > 200 ? "Critical" : "Danger"}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
