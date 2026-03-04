@@ -13,15 +13,13 @@ const menuItems = [
   { title: "Farmers Needs", path: "/dashboard/farmers-needs", icon: ShoppingCart },
   { title: "Loan Facility", path: "/dashboard/loan-facility", icon: Landmark },
   { title: "Wildlife Protection", path: "/dashboard/wildlife-protection", icon: ShieldAlert },
-  { title: "🐾 Wildlife Tracking", path: "/dashboard/wildlife-tracking", icon: PawPrint },
-  { title: "🔥 Heatmap & AI", path: "/dashboard/wildlife-heatmap", icon: Flame },
   { title: "Sell Crop", path: "/dashboard/marketing", icon: Store },
   { title: "Crop Disease", path: "/dashboard/crop-disease", icon: Bug },
   { title: "Market Analytics", path: "/dashboard/market-analytics", icon: BarChart3 },
   { title: "India Crop Map", path: "/dashboard/india-map", icon: Map },
   { title: "Report Problems", path: "/dashboard/report-problems", icon: FileWarning },
   { title: "Helplines", path: "/dashboard/helplines", icon: Phone },
-  { title: "🤖 Kisan Mitra AI", path: "/dashboard/chat-assistant", icon: MessageCircle },
+  
 ];
 
 const DashboardLayout = () => {

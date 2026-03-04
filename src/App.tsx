@@ -39,16 +39,13 @@ const App = () => (
             <Route path="farmers-needs" element={<FarmersNeeds />} />
             <Route path="loan-facility" element={<LoanFacility />} />
             <Route path="wildlife-protection" element={<WildlifeProtection />} />
-            <Route path="wildlife-tracking" element={<WildlifeTracking />} />
-            <Route path="wildlife-register" element={<WildlifeRegistration />} />
-            <Route path="wildlife-heatmap" element={<WildlifeHeatmap />} />
             <Route path="marketing" element={<Marketing />} />
             <Route path="crop-disease" element={<CropDisease />} />
             <Route path="market-analytics" element={<MarketAnalytics />} />
             <Route path="india-map" element={<IndiaMap />} />
             <Route path="report-problems" element={<ReportProblems />} />
             <Route path="helplines" element={<Helplines />} />
-            <Route path="chat-assistant" element={<ChatAssistant />} />
+            
           </Route>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
