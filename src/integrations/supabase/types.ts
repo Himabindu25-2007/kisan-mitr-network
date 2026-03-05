@@ -46,6 +46,98 @@ export type Database = {
           },
         ]
       }
+      farmer_crops: {
+        Row: {
+          created_at: string | null
+          crop_name: string
+          crop_period: string
+          farmer_id: string
+          id: string
+          season: string | null
+          year: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crop_name: string
+          crop_period: string
+          farmer_id: string
+          id?: string
+          season?: string | null
+          year?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crop_name?: string
+          crop_period?: string
+          farmer_id?: string
+          id?: string
+          season?: string | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farmer_crops_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      farmers: {
+        Row: {
+          aadhaar: string | null
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          district: string | null
+          farmer_name: string
+          father_name: string | null
+          id: string
+          irrigation_type: string | null
+          land_size_acres: number | null
+          phone: string | null
+          soil_type: string | null
+          state: string | null
+          updated_at: string | null
+          village: string | null
+        }
+        Insert: {
+          aadhaar?: string | null
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          district?: string | null
+          farmer_name: string
+          father_name?: string | null
+          id?: string
+          irrigation_type?: string | null
+          land_size_acres?: number | null
+          phone?: string | null
+          soil_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+          village?: string | null
+        }
+        Update: {
+          aadhaar?: string | null
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          district?: string | null
+          farmer_name?: string
+          father_name?: string | null
+          id?: string
+          irrigation_type?: string | null
+          land_size_acres?: number | null
+          phone?: string | null
+          soil_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+          village?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
