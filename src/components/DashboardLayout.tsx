@@ -1,11 +1,12 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Sprout, Wheat, ShoppingCart, Landmark, ShieldAlert, Store, Bug,
-  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, MessageCircle,
-  PawPrint, Flame
+  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, LogOut
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "About Crops", path: "/dashboard", icon: Sprout },
@@ -26,6 +27,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const { user, signOut } = useAuth();
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -89,9 +91,17 @@ const DashboardLayout = () => {
               className="pl-10 bg-muted/50 border-0"
             />
           </div>
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground hidden sm:block">
-            ← Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            {user && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
+                <Button variant="ghost" size="sm" onClick={signOut} className="gap-1">
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </Button>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Page content */}
