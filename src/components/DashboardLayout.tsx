@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Sprout, Wheat, ShoppingCart, Landmark, ShieldAlert, Store, Bug,
-  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, LogOut
+  BarChart3, Map, FileWarning, Phone, Settings, Search, Menu, X, LogOut, Users
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "About Crops", path: "/dashboard", icon: Sprout },
+  { title: "Farmer Registration", path: "/dashboard/farmer-registration", icon: Users },
   { title: "Crop Information", path: "/dashboard/crop-info", icon: Wheat },
   { title: "Farmers Needs", path: "/dashboard/farmers-needs", icon: ShoppingCart },
   { title: "Loan Facility", path: "/dashboard/loan-facility", icon: Landmark },
