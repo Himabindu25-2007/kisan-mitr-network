@@ -138,6 +138,137 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_applications: {
+        Row: {
+          amount_requested: number
+          applied_by: string
+          created_at: string | null
+          emi: number | null
+          farmer_id: string
+          id: string
+          loan_scheme_id: string
+          status: string
+          tenure_months: number
+          updated_at: string | null
+        }
+        Insert: {
+          amount_requested: number
+          applied_by: string
+          created_at?: string | null
+          emi?: number | null
+          farmer_id: string
+          id?: string
+          loan_scheme_id: string
+          status?: string
+          tenure_months?: number
+          updated_at?: string | null
+        }
+        Update: {
+          amount_requested?: number
+          applied_by?: string
+          created_at?: string | null
+          emi?: number | null
+          farmer_id?: string
+          id?: string
+          loan_scheme_id?: string
+          status?: string
+          tenure_months?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_applications_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_loan_scheme_id_fkey"
+            columns: ["loan_scheme_id"]
+            isOneToOne: false
+            referencedRelation: "loan_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_schemes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          eligibility: string | null
+          id: string
+          interest_rate: number
+          is_active: boolean | null
+          loan_name: string
+          loan_type: string
+          max_amount: number
+          processing_fee: number | null
+          provider: string
+          tenure_months: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          eligibility?: string | null
+          id?: string
+          interest_rate?: number
+          is_active?: boolean | null
+          loan_name: string
+          loan_type?: string
+          max_amount?: number
+          processing_fee?: number | null
+          provider: string
+          tenure_months?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          eligibility?: string | null
+          id?: string
+          interest_rate?: number
+          is_active?: boolean | null
+          loan_name?: string
+          loan_type?: string
+          max_amount?: number
+          processing_fee?: number | null
+          provider?: string
+          tenure_months?: number | null
+        }
+        Relationships: []
+      }
+      loan_status_tracking: {
+        Row: {
+          application_id: string
+          id: string
+          notes: string | null
+          stage: string
+          updated_at: string | null
+        }
+        Insert: {
+          application_id: string
+          id?: string
+          notes?: string | null
+          stage: string
+          updated_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          id?: string
+          notes?: string | null
+          stage?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_status_tracking_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
