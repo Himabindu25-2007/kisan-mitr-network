@@ -48,7 +48,7 @@ const CropDisease = () => {
 
   const saveReport = async () => {
     if (!result || !user) return;
-    const { error } = await supabase.from("disease_reports").insert({
+    const { error } = await supabase.from("disease_reports" as any).insert({
       crop_name: result.crop,
       disease_name: result.name,
       confidence: result.confidence,

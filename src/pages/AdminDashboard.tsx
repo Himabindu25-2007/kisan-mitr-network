@@ -41,7 +41,7 @@ const AdminDashboard = () => {
   useEffect(() => { if (user && hasRole("admin")) fetchAll(); }, [user, authLoading]);
 
   const updateStatus = async (table: string, id: string, status: string) => {
-    const { error } = await supabase.from(table).update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await (supabase.from(table as any) as any).update({ status, updated_at: new Date().toISOString() }).eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {

@@ -58,7 +58,7 @@ const ReportProblems = () => {
     const priority = ["🐘 Wildlife Attack", "🌳 Illegal Tree Cutting"].includes(form.type) ? "Emergency" : 
                      ["💧 Water Shortage", "⚡ Electricity Issue"].includes(form.type) ? "Medium" : "Normal";
 
-    const { error } = await supabase.from("complaints").insert({
+    const { error } = await supabase.from("complaints" as any).insert({
       farmer_name: form.name,
       village: form.village || null,
       district: form.district || null,
