@@ -46,6 +46,108 @@ export type Database = {
           },
         ]
       }
+      complaints: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          description: string | null
+          district: string | null
+          farmer_name: string
+          id: string
+          mobile: string | null
+          photo_url: string | null
+          priority: string
+          problem_type: string
+          status: string
+          submitted_by: string | null
+          updated_at: string | null
+          village: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          district?: string | null
+          farmer_name: string
+          id?: string
+          mobile?: string | null
+          photo_url?: string | null
+          priority?: string
+          problem_type: string
+          status?: string
+          submitted_by?: string | null
+          updated_at?: string | null
+          village?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          district?: string | null
+          farmer_name?: string
+          id?: string
+          mobile?: string | null
+          photo_url?: string | null
+          priority?: string
+          problem_type?: string
+          status?: string
+          submitted_by?: string | null
+          updated_at?: string | null
+          village?: string | null
+        }
+        Relationships: []
+      }
+      disease_reports: {
+        Row: {
+          admin_notes: string | null
+          confidence: number | null
+          created_at: string | null
+          crop_name: string
+          description: string | null
+          disease_name: string
+          farmer_name: string | null
+          id: string
+          pesticide_recommended: string | null
+          photo_url: string | null
+          severity: string | null
+          status: string
+          submitted_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          crop_name: string
+          description?: string | null
+          disease_name: string
+          farmer_name?: string | null
+          id?: string
+          pesticide_recommended?: string | null
+          photo_url?: string | null
+          severity?: string | null
+          status?: string
+          submitted_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          crop_name?: string
+          description?: string | null
+          disease_name?: string
+          farmer_name?: string | null
+          id?: string
+          pesticide_recommended?: string | null
+          photo_url?: string | null
+          severity?: string | null
+          status?: string
+          submitted_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       farmer_crops: {
         Row: {
           created_at: string | null
