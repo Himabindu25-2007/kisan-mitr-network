@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Upload, ImageIcon } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const problemTypes = [
   "💧 Water Shortage",
@@ -13,13 +15,18 @@ const problemTypes = [
   "🛡️ Insurance Issue",
   "🧪 Fertilizer Shortage",
   "📉 Market Exploitation",
+  "🐘 Wildlife Attack",
+  "🌳 Illegal Tree Cutting",
+  "🛤️ Road Damage",
 ];
 
 const ReportProblems = () => {
   const [form, setForm] = useState<Record<string, string>>({});
   const [photo, setPhoto] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (location.state) {
@@ -41,19 +48,42 @@ const ReportProblems = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "✅ Complaint Submitted",
-      description: "Your report has been sent to the government dashboard. Track ID: " + Date.now().toString(36).toUpperCase(),
+  const handleSubmit = async () => {
+    if (!form.type || !form.name) {
+      toast({ title: "Missing fields", description: "Please fill in problem type and name", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+
+    const priority = ["🐘 Wildlife Attack", "🌳 Illegal Tree Cutting"].includes(form.type) ? "Emergency" : 
+                     ["💧 Water Shortage", "⚡ Electricity Issue"].includes(form.type) ? "Medium" : "Normal";
+
+    const { error } = await supabase.from("complaints").insert({
+      farmer_name: form.name,
+      village: form.village || null,
+      district: form.district || null,
+      mobile: form.mobile || null,
+      problem_type: form.type,
+      description: form.description || null,
+      photo_url: photo || null,
+      priority,
+      submitted_by: user?.id,
     });
-    setForm({});
-    setPhoto(null);
+
+    setSubmitting(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "✅ Complaint Submitted", description: "Your report has been sent for admin review." });
+      setForm({});
+      setPhoto(null);
+    }
   };
 
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       <h1 className="text-3xl font-display font-bold mb-2">📋 Report Problems</h1>
-      <p className="text-muted-foreground mb-8">Submit your farming issues to the government dashboard</p>
+      <p className="text-muted-foreground mb-8">Submit your farming issues for admin review & government action</p>
 
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
         <div>
@@ -66,7 +96,6 @@ const ReportProblems = () => {
           </Select>
         </div>
 
-        {/* Photo Upload */}
         <div>
           <label className="text-sm font-medium mb-1 block">📸 Attach Photo</label>
           <div
@@ -112,8 +141,8 @@ const ReportProblems = () => {
             placeholder="Describe your problem in detail..."
           />
         </div>
-        <Button onClick={handleSubmit} className="w-full bg-primary text-primary-foreground" size="lg">
-          📤 Submit Report
+        <Button onClick={handleSubmit} disabled={submitting} className="w-full bg-primary text-primary-foreground" size="lg">
+          {submitting ? "Submitting..." : "📤 Submit Report"}
         </Button>
       </div>
     </div>

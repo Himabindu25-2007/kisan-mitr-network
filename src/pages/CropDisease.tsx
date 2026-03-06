@@ -1,13 +1,17 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Camera, AlertTriangle } from "lucide-react";
+import { Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-const mockDiseases: Record<string, { name: string; confidence: number; severity: string; desc: string; pesticide: string; dosage: string; method: string; safety: string; buyLink: string }> = {
+const mockDiseases: Record<string, { name: string; confidence: number; severity: string; desc: string; pesticide: string; dosage: string; method: string; safety: string; buyLink: string; crop: string }> = {
   default: {
     name: "Bacterial Leaf Blight",
     confidence: 87,
     severity: "Moderate",
+    crop: "Rice",
     desc: "Caused by Xanthomonas oryzae. Leads to yellowing and wilting of leaves, reducing photosynthesis and yield.",
     pesticide: "Streptocycline + Copper Oxychloride",
     dosage: "1g + 3g per litre of water",
@@ -19,9 +23,11 @@ const mockDiseases: Record<string, { name: string; confidence: number; severity:
 
 const CropDisease = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<typeof mockDiseases.default | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +36,7 @@ const CropDisease = () => {
     const reader = new FileReader();
     reader.onload = () => {
       setImage(reader.result as string);
+      setSaved(false);
       setLoading(true);
       setTimeout(() => {
         setResult(mockDiseases.default);
@@ -39,12 +46,31 @@ const CropDisease = () => {
     reader.readAsDataURL(file);
   };
 
+  const saveReport = async () => {
+    if (!result || !user) return;
+    const { error } = await supabase.from("disease_reports").insert({
+      crop_name: result.crop,
+      disease_name: result.name,
+      confidence: result.confidence,
+      severity: result.severity,
+      description: result.desc,
+      pesticide_recommended: result.pesticide,
+      photo_url: image,
+      submitted_by: user.id,
+    });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setSaved(true);
+      toast({ title: "✅ Report Saved", description: "Disease report submitted for admin review" });
+    }
+  };
+
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
       <h1 className="text-3xl font-display font-bold mb-2">🔬 AI Crop Disease Detection</h1>
       <p className="text-muted-foreground mb-8">Upload a photo of your crop to detect diseases instantly</p>
 
-      {/* Upload Area */}
       <div
         onClick={() => fileRef.current?.click()}
         className="border-2 border-dashed border-primary/30 rounded-xl p-12 text-center cursor-pointer hover:border-primary/60 hover:bg-leaf-light/50 transition-colors mb-8"
@@ -70,7 +96,6 @@ const CropDisease = () => {
 
       {result && !loading && (
         <div className="space-y-6 animate-fade-in">
-          {/* Disease Result */}
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="h-5 w-5 text-accent" />
@@ -97,7 +122,6 @@ const CropDisease = () => {
             <p className="text-muted-foreground text-sm">{result.desc}</p>
           </div>
 
-          {/* Pesticide Recommendation */}
           <div className="bg-leaf-light border border-primary/20 rounded-xl p-6">
             <h3 className="font-display font-bold text-lg mb-4">💊 Recommended Treatment</h3>
             <div className="space-y-3 text-sm">
@@ -110,6 +134,14 @@ const CropDisease = () => {
               <a href={result.buyLink} target="_blank" rel="noopener noreferrer">
                 <Button className="bg-accent text-accent-foreground">Buy on Flipkart</Button>
               </a>
+              <Button
+                variant="outline"
+                className="border-primary text-primary"
+                onClick={saveReport}
+                disabled={saved}
+              >
+                {saved ? "✅ Report Saved" : "📤 Submit for Admin Review"}
+              </Button>
               <Button
                 variant="outline"
                 className="border-primary text-primary"
