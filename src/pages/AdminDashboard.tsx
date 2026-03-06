@@ -28,9 +28,9 @@ const AdminDashboard = () => {
   const fetchAll = async () => {
     setLoading(true);
     const [c, l, d] = await Promise.all([
-      supabase.from("complaints").select("*").order("created_at", { ascending: false }),
+      supabase.from("complaints" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("loan_applications").select("*, farmers(farmer_name, village, district), loan_schemes(loan_name, provider)").order("created_at", { ascending: false }),
-      supabase.from("disease_reports").select("*").order("created_at", { ascending: false }),
+      supabase.from("disease_reports" as any).select("*").order("created_at", { ascending: false }),
     ]);
     setComplaints(c.data || []);
     setLoanApps(l.data || []);
